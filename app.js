@@ -19,7 +19,7 @@ var indexRoutes = require("./routes/index");
 
 // to use
 mongoose.connect(
-  "mongodb://localhost:27017/yelp_camp_v10", {
+  "mongodb://bhanu:number1219@ds229552.mlab.com:29552/yelpcampbybhanu", {
     useNewUrlParser: true
   }
 );
