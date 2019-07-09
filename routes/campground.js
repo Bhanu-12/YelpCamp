@@ -4,6 +4,35 @@ var router = express.Router({
 });
 var campGround = require("../models/campground");
 var middleware = require("../middleware");
+var multer = require('multer');
+var storage = multer.diskStorage({
+  filename: function (req, file, callback) {
+    callback(null, Date.now() + file.originalname);
+  }
+});
+// We are creating storage for the image that is going to be uploaded using our computer
+var imageFilter = function (req, file, cb) {
+  // accept image files only
+  if (!file.originalname.match(/\.(jpg|jpeg|png|gif)$/i)) {
+    return cb(new Error('Only image files are allowed!'), false);
+  }
+  cb(null, true);
+};
+// must only upload file jpg|jpeg|png|gif files only else upload error
+
+var upload = multer({
+  storage: storage,
+  fileFilter: imageFilter
+});
+// upload ke liye kya kya chaiye tha.
+
+var cloudinary = require('cloudinary');
+cloudinary.config({
+  cloud_name: 'dymh9n0ec',
+  api_key: "893537448695967",
+  api_secret: "7Ymdex-PRdRAhYb15sAz3lPI8CI"
+});
+
 router.get("/", function (req, res) { // etrieving everyting and showing it
   campGround.find({}, function (err, allCampGrounds) {
     if (err) {
@@ -19,30 +48,48 @@ router.get("/", function (req, res) { // etrieving everyting and showing it
 router.get("/new", isLoggedIn, function (req, res) {
   res.render("campgrounds/newCamp");
 });
-router.post("/", isLoggedIn, function (req, res) {
-  // get data from form and add to campgrounds array
-  var name = req.body.name;
-  var image = req.body.image;
-  var description = req.body.description;
-  var author = {
-    id: req.user._id,
-    username: req.user.username
-  };
-  var newCampground = {
-    name: name,
-    image: image,
-    description: description,
-    author: author
-  };
 
-  campGround.create(newCampground, function (err, newlyCreated) {
-    if (err) {
-      console.log(err);
-    } else {
-      //redirect back to campgrounds page
-      res.redirect("/campground");
+router.post("/", isLoggedIn, upload.single('image'), function (req, res) {
+  // get data from form and add to campgrounds array
+  // req.file.path-> add file path
+  cloudinary.uploader.upload(req.file.path, function (result) {
+    // add cloudinary url for the image to the campground object under image property
+    req.body.campground.image = result.secure_url;
+    // add author to campground
+    req.body.campground.author = {
+      id: req.user._id,
+      username: req.user.username
     }
+    campGround.create(req.body.campground, function (err, campground) {
+      if (err) {
+        req.flash('error', err.message);
+        return res.redirect('back');
+      }
+      res.redirect('/campground/' + campground.id);
+    });
   });
+  // var name = req.body.name;
+  // var image = req.body.image;
+  // var description = req.body.description;
+  // var author = {
+  //   id: req.user._id,
+  //   username: req.user.username
+  // };
+  // var newCampground = {
+  //   name: name,
+  //   image: image,
+  //   description: description,
+  //   author: author
+  // };
+
+  // campGround.create(newCampground, function (err, newlyCreated) {
+  //   if (err) {
+  //     console.log(err);
+  //   } else {
+  //     //redirect back to campgrounds page
+  //     res.redirect("/campground");
+  //   }
+  // });
 });
 
 router.get("/:id", function (req, res) {

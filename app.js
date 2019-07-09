@@ -50,7 +50,8 @@ passport.deserializeUser(User.deserializeUser());
 // middle ware 
 app.use(function (req, res, next) {
   res.locals.currentUser = req.user;
-  next();
+  res.locals.error = req.flash("error");
+  res.locals.success = req.flash("success");  next();
 });
 
 app.use("/", indexRoutes);
